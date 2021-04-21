@@ -72,6 +72,9 @@ namespace neuralnet1
         
         static void Main(string[] args)
         {
+            mnist m = new mnist();
+            m.LoadTrainDataset();
+
             Console.WriteLine("This is C#");
             
             float[,] inputs = {{ 1.0f, 2.0f, 3.0f, 2.5f },
