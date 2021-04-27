@@ -87,7 +87,13 @@ namespace neuralnet1
 
                 for (int j = 0; j < cols; j++)
                 {
-                    if (m0[i, j] != m1[i, j]) return false;
+                    // tolerance is required due to precision/rounding errors
+                    double difference = Math.Abs(m0[i, j] * .00001);
+                    if (Math.Abs(m0[i, j] - m1[i, j]) > difference)
+                    {
+                        Console.WriteLine(m0[i, j] + " != " + m1[i, j]);
+                        return false;
+                    }
                 }
 
             }
@@ -174,18 +180,19 @@ namespace neuralnet1
         public static void unit_dot_test_1()
         {
 
-            double[,] m0 = {{1.0f, 2.0f, 3.0f, 2.5f},
-                        {2.0f, 5.0f, -1.0f, 2.0f},
-                        {-1.5f, 2.7f, 3.3f, -0.8f}};
+            double[,] m0 = {{1.0, 2.0, 3.0, 2.5},
+                        {2.0, 5.0, -1.0, 2.0},
+                        {-1.5, 2.7, 3.3, -0.8}};
 
-            double[,] m1 = {{1.0f, -2.0f, 3.0f, 1.5f, 1.3f},
-                        {0.9f, 2.3f, 1.8f, -2.0f, 9.0f},
-                        {9.0f, 1.0f, -2.0f, 7.0f, 1.0f},
-                        {-2.0f, 1.3f, 1.7f, 2.4f, 5.6f}};
+            double[,] m1 = {{1.0, -2.0, 3.0, 1.5, 1.3},
+                        {0.9, 2.3, 1.8, -2.0, 9.0},
+                        {9.0, 1.0, -2.0, 7.0, 1.0},
+                        {-2.0, 1.3, 1.7, 2.4, 5.6}};
              
-            double[,] correct = {{24.8f,  8.849999f, 4.85f, 24.5f, 36.3f},
-                                {-6.5f,  9.1f,  20.4f, -9.2f, 57.8f},
-                                {32.23f, 11.47f, -7.6f,  13.53f, 21.17f}};
+            double[,] correct = {{24.8,  8.85, 4.85, 24.5, 36.3},
+                                {-6.5,  9.1,  20.4, -9.2, 57.8},
+                                {32.23, 11.47, -7.6,  13.53, 21.17}};
+
             double[,] output = dot(m0, m1);
 
             if (!compare(output, correct))

@@ -18,6 +18,75 @@ namespace neuralnet1
         Sigmoid,
         SoftMax
     }
+    enum Loss
+    {
+        CategoricalCrossEntropy
+    }
+    class LossFunction
+    {
+        public double[,] y_predicted;
+        public double[,] y_true;
+        public double [] loss;
+        public LossFunction()
+        {
+        }
+
+        public virtual void Calculate(double[,] y_predicted, double[,] y_true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double MeanLoss()
+        {
+            int count =0;
+            double sum =0;
+            foreach (double d in this.loss)
+            {
+                sum += d;
+                count++;
+            }
+            return sum / count;
+        }
+    }
+    class CategoricalCrossEntropy : LossFunction
+    {
+        public CategoricalCrossEntropy(): base ()
+        {
+        }
+        public override void Calculate (double[,] y_predicted, double[,] y_true)
+        {
+            /*
+             * Categorical Cross Entropy
+             * actual - a 2d array of outputs from the softmax layer
+             *      rows represent batches and columns represent neuron outputs
+             * desired - a 2d array of one hot encoded categories
+             *      rows represent batches and columns represent desired neuron outputs
+             *      ie: for 10 digits, the nth index is 1 and the rest are 0 where n is the digit
+             *      1 = 0, 1, 0, 0, 0, 0, 0, 0, 0 ,0
+             *      5 = 0, 0, 0, 0, 0, 1, 0, 0, 0 ,0
+             *      
+             *      loss is calculated as the negative sum of logs of the output multiplied by the desired outputs
+             *      
+             */
+            this.y_predicted = y_predicted;
+            this.y_true = y_true;
+            this.loss = new double[y_predicted.GetUpperBound(0) + 1];
+            // TODO:  Handle case log(0) by clipping values between 1e-7 and 1-1e-7
+            //          Allow small values close to 0 but not 0.  Use simple Max(Min(value, upper_limit), lower_limit)?
+
+            for (int i = 0; i < y_predicted.GetUpperBound(0) + 1; i++)
+            {
+                double sum_of_logs = 0;
+                for (int j = 0; j < y_predicted.GetUpperBound(1) + 1; j++)
+                {
+                    sum_of_logs += Math.Log(y_predicted[i, j]) * y_true[i, j];
+                }
+                this.loss[i] = -(sum_of_logs);
+
+            }
+        }
+
+    }
     class ActivationFunction
     {
         public double[,] output;
@@ -102,6 +171,7 @@ namespace neuralnet1
             this.output = new double[1,n_neurons];
             if (at == Activation.ReLU) this.activation_function = new ReLU(n_neurons);
             if (at == Activation.SoftMax) this.activation_function = new SoftMax(n_neurons);
+            if (at == Activation.Sigmoid) throw new NotImplementedException();
 
 
 
@@ -168,17 +238,25 @@ namespace neuralnet1
             m.LoadTrainDataset();
 
             
-            double[,] inputs = {{ 1.0f, 2.0f, 3.0f, 2.5f },
-                               {2.0f, 5.0f, -1.0f, 2.0f },
-                               {-1.5f, 2.7f, 3.3f, -0.8f } };
-   
+            double[,] inputs = {{ 1.0, 2.0, 3.0, 2.5 },
+                               {2.0, 5.0, -1.0, 2.0 },
+                               {-1.5, 2.7, 3.3, -0.8 } };
+            double[,] class_targets = {{ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
+                                      { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+                                      { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 }};
+
             DenseLayer layer1 = new DenseLayer(4, 5, Activation.ReLU);
-            DenseLayer layer2 = new DenseLayer(5, 2, Activation.SoftMax);
+            DenseLayer layer2 = new DenseLayer(5, 10, Activation.SoftMax);
             layer1.Forward(inputs);
             layer2.Forward(layer1.GetOutput());
-            Console.WriteLine(matrix.MatrixToString(layer2.output));
-            Console.WriteLine(matrix.MatrixToString(layer2.GetOutput()));
+            LossFunction loss = new CategoricalCrossEntropy();
 
+            
+            
+            Console.WriteLine(matrix.MatrixToString(layer2.GetOutput()));
+            loss.Calculate(layer2.GetOutput(), class_targets);
+
+            Console.WriteLine ("Mean loss is {0}", loss.MeanLoss());
             Console.ReadKey();
         }
     }
