@@ -143,6 +143,22 @@ namespace neuralnet1
             r += "}\n";
             return r;
         }
+
+        public static string VectorToString(double[] m0)
+        {
+            String r = "";
+            r += "{";
+            for (int i = 0; i < m0.GetUpperBound(0) + 1; i++)
+            {
+                r += m0[i];
+                if (i != m0.GetUpperBound(0))
+                {
+                    r += ", ";
+                }
+            }
+            r += "}\n";
+            return r;
+        }
         public static double[] add(double[] matrix1, double[] matrix2)
         {
             // adds a vector quantity to a matrix

@@ -235,28 +235,24 @@ namespace neuralnet1
         {
             matrix.unit_tests();
             mnist m = new mnist();
-            m.LoadTrainDataset();
+            int[] samples = { 0, 1, 5, 100, 999 };
+            m.Load();
+            double[,] inputs = m.GetBatchSamples(samples);
+            double[,] class_targets = m.GetBatchClassifications(samples);
 
-            
-            double[,] inputs = {{ 1.0, 2.0, 3.0, 2.5 },
-                               {2.0, 5.0, -1.0, 2.0 },
-                               {-1.5, 2.7, 3.3, -0.8 } };
-            double[,] class_targets = {{ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
-                                      { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                                      { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 }};
-
-            DenseLayer layer1 = new DenseLayer(4, 5, Activation.ReLU);
-            DenseLayer layer2 = new DenseLayer(5, 10, Activation.SoftMax);
+            DenseLayer layer1 = new DenseLayer(784, 24, Activation.ReLU);
+            DenseLayer layer2 = new DenseLayer(24, 24, Activation.ReLU);
+            DenseLayer layer3 = new DenseLayer(24, 10, Activation.SoftMax);
             layer1.Forward(inputs);
             layer2.Forward(layer1.GetOutput());
+            layer3.Forward(layer2.GetOutput());
             LossFunction loss = new CategoricalCrossEntropy();
+                        
 
-            
-            
-            Console.WriteLine(matrix.MatrixToString(layer2.GetOutput()));
-            loss.Calculate(layer2.GetOutput(), class_targets);
+            Console.WriteLine(matrix.MatrixToString(layer3.GetOutput()));
+            loss.Calculate(layer3.GetOutput(), class_targets);
 
-            Console.WriteLine ("Mean loss is {0}", loss.MeanLoss());
+             Console.WriteLine ("Mean loss is {0}", loss.MeanLoss());
             Console.ReadKey();
         }
     }

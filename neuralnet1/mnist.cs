@@ -30,7 +30,9 @@ namespace neuralnet1
     class mnist
     {
         byte[] fileBytes;
-        byte[][,] imageData;
+        public byte[][] imageData;
+        public double[][] normalData;
+        public double[][] classifications; // one-hot-encoded classifications
         byte[] labelData;
         string filepath = "../../data/train-images.idx3-ubyte";
         string labelpath = "../../data/train-labels.idx1-ubyte";
@@ -39,6 +41,57 @@ namespace neuralnet1
         uint n_images;
         uint img_y;
         uint img_x;
+        public double[,] GetBatchSamples(int[] sample_indices)
+        {
+            // takes in an array of integers and constructs a 2d array of samples matching corresponding to indices
+            double[,] batch_samples = new double[sample_indices.GetUpperBound(0)+1, img_x * img_y];
+            for (int n = 0; n <= sample_indices.GetUpperBound(0); n++)
+            {
+                for (int i = 0; i < (img_x * img_y); i++)
+                {
+                    batch_samples[n, i] = this.normalData[sample_indices[n]][i];
+                }
+            }
+
+            return batch_samples;
+        }
+        public double[,] GetBatchClassifications(int[] sample_indices)
+        {
+            double[,] batch_classifications = new double[sample_indices.GetUpperBound(0) + 1, 10];
+            for (int n = 0; n <= sample_indices.GetUpperBound(0); n++)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    batch_classifications[n, i] = this.classifications[sample_indices[n]][i];
+                }
+            }
+            return batch_classifications;
+        }
+        public void OneHotEncodeLabels()
+        {
+            this.classifications = new double[n_images][];
+            for (int n = 0; n < n_images; n++)
+            {
+                this.classifications[n] = new double[10];
+                for (int i = 0; i < 10; i++)
+                {
+                    if (i == labelData[n]) this.classifications[n][i] = 1;
+                    else this.classifications[n][i] = 0;
+                }
+            }
+        }
+        public void NormalizeData()
+        {
+            this.normalData = new double[n_images][];
+            for (int n = 0; n < n_images; n++) {
+                this.normalData[n] = new double[img_x * img_y];
+                for (int i = 0; i < (img_x * img_y); i++)
+                {
+                    normalData[n][i] = (double)imageData[n][i] / 255;
+                }
+            }
+        }
+        
         public byte GetByte()
         {
             if (pos < length) { 
@@ -53,13 +106,13 @@ namespace neuralnet1
                 return 0x00;
             }
         }
-        public byte [,] GetByteImage(uint rows, uint cols)
+        public byte [] GetByteImage(uint rows, uint cols)
         {
-            byte[,] byteImage = new byte[cols, rows];
+            byte[] byteImage = new byte[cols*rows];
             for (int y = 0; y < rows; y++) {
                 for (int x = 0; x < cols; x++)
                 {
-                    byteImage[x, y] = GetByte();
+                    byteImage[y*cols + x] = GetByte();
                     
                 }
             }
@@ -84,7 +137,7 @@ namespace neuralnet1
             {
                 for (int x = 0; x < img_x; x++)
                 {
-                    byte b = imageData[n][x, y];
+                    byte b = imageData[n][y* img_x + x];
                     char o = ' ';
                     if (b > 25) o = '`';
                     if (b > 50) o = '.';
@@ -140,9 +193,24 @@ namespace neuralnet1
             Console.WriteLine("..Done!");
 
         }
-        public void LoadTrainDataset ()
+        public void Load()
         {
             this.LoadTrainLabels();
+            this.LoadTrainDataset();
+            this.NormalizeData();
+            this.OneHotEncodeLabels();
+
+            Random rnd = new Random();
+            int r_img = rnd.Next(0, (int)n_images); // creates a number between 1 and 12
+            Console.WriteLine("Displaying random image from file {0}/{1}", (uint)r_img, n_images);
+
+            Console.WriteLine("Label for this image is '{0}'", labelData[r_img]);
+            Console.WriteLine("One-hot-encode is {0}", matrix.VectorToString(this.classifications[r_img]));
+            DisplayImageInConsole((uint)r_img);
+        }
+        public void LoadTrainDataset ()
+        {
+            
             Console.WriteLine("Opening file '{0}'", this.filepath);
             try
             {
@@ -181,19 +249,14 @@ namespace neuralnet1
                 return;
             }
             Console.WriteLine("Loading {0} images from file.", n_images);
-            imageData = new byte[n_images][,];
+            imageData = new byte[n_images][];
             for (int imgn = 0; imgn < n_images; imgn++)
             {
                 imageData[imgn] = GetByteImage(img_y, img_x);
             }
             Console.WriteLine("..Done!");
 
-            Random rnd = new Random();
-            int r_img = rnd.Next(0,(int)n_images); // creates a number between 1 and 12
-            Console.WriteLine("Displaying random image from file {0}/{1}", (uint) r_img, n_images);
-
-            Console.WriteLine("Label for this image is '{0}'", labelData[r_img]);
-            DisplayImageInConsole((uint)r_img);
+           
 
 
         }
