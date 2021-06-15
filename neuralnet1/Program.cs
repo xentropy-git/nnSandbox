@@ -5,11 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 /*
- * TODO NEXT:
- *  Implement loss function (categorical cross entropy)
- *  Implement optimizer
+ * TODO:
+ *  Implement ArgMax()
+ * Implement accuracy() returns the % of time the neural network correctly classified the inputs
+ *    number_of_accurate_predections / number_of_samples
+ * 
  */
-
 namespace neuralnet1
 {
     enum Activation
@@ -57,9 +58,9 @@ namespace neuralnet1
         {
             /*
              * Categorical Cross Entropy
-             * actual - a 2d array of outputs from the softmax layer
+             * predicted - a 2d array of outputs from the softmax layer
              *      rows represent batches and columns represent neuron outputs
-             * desired - a 2d array of one hot encoded categories
+             * true - a 2d array of one hot encoded categories
              *      rows represent batches and columns represent desired neuron outputs
              *      ie: for 10 digits, the nth index is 1 and the rest are 0 where n is the digit
              *      1 = 0, 1, 0, 0, 0, 0, 0, 0, 0 ,0
@@ -71,15 +72,17 @@ namespace neuralnet1
             this.y_predicted = y_predicted;
             this.y_true = y_true;
             this.loss = new double[y_predicted.GetUpperBound(0) + 1];
-            // TODO:  Handle case log(0) by clipping values between 1e-7 and 1-1e-7
-            //          Allow small values close to 0 but not 0.  Use simple Max(Min(value, upper_limit), lower_limit)?
+          
 
             for (int i = 0; i < y_predicted.GetUpperBound(0) + 1; i++)
             {
                 double sum_of_logs = 0;
                 for (int j = 0; j < y_predicted.GetUpperBound(1) + 1; j++)
                 {
-                    sum_of_logs += Math.Log(y_predicted[i, j]) * y_true[i, j];
+                    double clipped_predicted = Math.Min(Math.Max(y_predicted[i, j], 1e-7),1-1e-7);
+                    //Console.WriteLine(clipped_predicted.ToString("0.########"));
+
+                    sum_of_logs += Math.Log(clipped_predicted) * y_true[i, j];
                 }
                 this.loss[i] = -(sum_of_logs);
 
@@ -149,10 +152,12 @@ namespace neuralnet1
 
                 // divide the outputs by the sum to get a percentage
                 // final result is a probability distribution
+
                 for (int j = 0; j < inputs.GetUpperBound(1) + 1; j++)
                 {
                     this.output[i, j] = this.output[i, j]/rowSum ;
                 }
+
 
             }
         }
@@ -186,6 +191,20 @@ namespace neuralnet1
         public double [,] GetOutput ()
         {
             return activation_function.output;
+        }
+
+        public double GetOutputAt (int i, int j)
+        {
+            return activation_function.output[i,j];
+        }
+        public int GetRows()
+        {
+            return this.GetOutput().GetUpperBound(0) + 1;
+        }
+
+        public int GetCols()
+        {
+            return this.GetOutput().GetUpperBound(1) + 1;
         }
         static double[,] random_weights (int a, int b)
         {
@@ -249,10 +268,25 @@ namespace neuralnet1
             LossFunction loss = new CategoricalCrossEntropy();
                         
 
-            Console.WriteLine(matrix.MatrixToString(layer3.GetOutput()));
+            //Console.WriteLine(matrix.MatrixToString(layer3.GetOutput()));
             loss.Calculate(layer3.GetOutput(), class_targets);
 
-             Console.WriteLine ("Mean loss is {0}", loss.MeanLoss());
+            // Accuracy Calculation
+            // for each row of matrix,
+            // do equivalency check of arg max from prediction and arg max of true
+            // the mean of the equivalency checks is the accuracy.
+            double sum_correct = 0;
+            for (int i = 0; i < layer3.GetRows(); i++)
+            {
+                (int argMaxA, double valueA) = matrix.argmax(layer3.GetOutput(), i);
+                (int argMaxB, double valueB) = matrix.argmax(class_targets, i);
+                Console.WriteLine("Predicted {0}, True {1}", argMaxA, argMaxB);
+                if(argMaxA == argMaxB) sum_correct++;
+            }
+            double acc = sum_correct / layer3.GetRows();
+
+            Console.WriteLine ("loss: {0}", loss.MeanLoss().ToString("0.########"));
+            Console.WriteLine("acc: {0}", acc.ToString("0.########"));
             Console.ReadKey();
         }
     }

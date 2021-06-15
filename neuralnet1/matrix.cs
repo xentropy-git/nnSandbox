@@ -100,6 +100,21 @@ namespace neuralnet1
 
             return true;
         }
+        public static Tuple<int, double> argmax(double[,] a, int row)
+        {
+            // determines the argmax of a row of a matrix.
+            double maxValue = 0;
+            int maxIndex = 0;
+            for (int i = 0; i < a.GetUpperBound(1)+1; i++)
+            {
+                if (a[row,i] > maxValue)
+                {
+                    maxValue = a[row,i];
+                    maxIndex = i;
+                }
+            }
+            return Tuple.Create(maxIndex, maxValue);
+        }
         public static double[,] add(double[,] m1, double[] v2)
         {
             int rows = m1.GetUpperBound(0) + 1;
@@ -127,7 +142,7 @@ namespace neuralnet1
                 r += "  {";
                 for (int j = 0; j < m0.GetUpperBound(1) + 1; j++)
                 {
-                    r += m0[i, j];
+                    r += m0[i, j].ToString("0.####");
                     if (j == m0.GetUpperBound(1))
                     {
                         r += "}\n";
