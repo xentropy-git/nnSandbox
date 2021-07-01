@@ -6,10 +6,13 @@ using System.Threading.Tasks;
 
 /*
  * TODO:
- *  Implement ArgMax()
- * Implement accuracy() returns the % of time the neural network correctly classified the inputs
- *    number_of_accurate_predections / number_of_samples
- * 
+ *  Calculate dbiases on backward phase for DenseLayers.  Must implement a function like np.sum()
+ *  Implement AdjustValues() for each class to adjust weights and biases based on partial derivative calcs
+ *      Might be helpful to create a matrix.add function
+ *      matrix.add (matrix [weights], -learning_rate * matrix2 [dweights])
+ *  Part of the stochastic gradient descent is already implemented, as samples are generated and sent on the forward pass
+ *  The next part of the SGD algorithm will adjust values based on a learning rate, and then select a different
+ *  random sample set on each iteration.
  */
 namespace neuralnet1
 {
@@ -28,11 +31,19 @@ namespace neuralnet1
         public double[,] y_predicted;
         public double[,] y_true;
         public double [] loss;
+        public double[,] output;
+        public double[,] dinputs;
+
         public LossFunction()
         {
         }
 
-        public virtual void Calculate(double[,] y_predicted, double[,] y_true)
+        public virtual void Forward(double[,] y_predicted, double[,] y_true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void Backward(double[,] dvalues, double[,] y_true)
         {
             throw new NotImplementedException();
         }
@@ -54,7 +65,23 @@ namespace neuralnet1
         public CategoricalCrossEntropy(): base ()
         {
         }
-        public override void Calculate (double[,] y_predicted, double[,] y_true)
+        public override void Backward(double[,] dvalues, double[,] y_true)
+        {
+            int samples = dvalues.GetUpperBound(0)+1;
+            int labels = dvalues.GetUpperBound(1)+1;
+            Console.WriteLine("Samples: {0}", samples);
+            Console.WriteLine("Labels: {0}", labels);
+
+            int tsamples = y_true.GetUpperBound(0)+1;
+            int tlabels = y_true.GetUpperBound(1)+1;
+            Console.WriteLine("True Samples: {0}", tsamples);
+            Console.WriteLine("True Labels: {0}", tlabels);
+
+            // calculate the gradient
+            this.dinputs = new double[tsamples, tlabels];
+
+        }
+        public override void Forward (double[,] y_predicted, double[,] y_true)
         {
             /*
              * Categorical Cross Entropy
@@ -69,8 +96,9 @@ namespace neuralnet1
              *      loss is calculated as the negative sum of logs of the output multiplied by the desired outputs
              *      
              */
-            this.y_predicted = y_predicted;
-            this.y_true = y_true;
+            this.y_predicted = matrix.copy(y_predicted);
+            this.y_true = matrix.copy(y_true);
+            this.output = matrix.copy(y_predicted);
             this.loss = new double[y_predicted.GetUpperBound(0) + 1];
           
 
@@ -93,12 +121,18 @@ namespace neuralnet1
     class ActivationFunction
     {
         public double[,] output;
+        public double[,] inputs;
+        public double[,] dinputs;
         public ActivationFunction(int n_neurons)
         {
             this.output = new double[1, n_neurons];
         }
 
         public virtual void Forward(double[,] inputs)
+        {
+            throw new NotImplementedException();
+        }
+        public virtual void Backward(double[,] dinputs)
         {
             throw new NotImplementedException();
         }
@@ -110,6 +144,7 @@ namespace neuralnet1
         }
         public override void Forward (double[,] inputs)
         {
+            this.inputs = matrix.copy(inputs);
             this.output = new double[inputs.GetUpperBound(0)+1, inputs.GetUpperBound(1)+1];
             for (int i = 0; i < inputs.GetUpperBound(0) + 1; i++)
             {
@@ -119,6 +154,19 @@ namespace neuralnet1
 
                 }
 
+            }
+        }
+        public override void Backward (double[,] dvalues) {
+            this.dinputs = matrix.copy(dvalues);
+
+            // zero gradient where input values were negative
+             for (int i = 0; i < this.inputs.GetUpperBound(0) + 1; i++)
+             {
+                for (int j = 0; j < this.inputs.GetUpperBound(1) + 1; j++)
+                {
+                    if (this.inputs[i, j] <= 0) this.dinputs[i,j] = 0;
+
+                }
             }
         }
     }
@@ -162,21 +210,77 @@ namespace neuralnet1
             }
         }
     }
+    class ActivationSoftmaxLossCategoricalCrossentropy
+    {
+        // combines the softmax activation funcion and cross-entropy loss function
+        // when these two are used together, the partial derivitave calculation
+        // is vastly simpler and faster to compute.
+        SoftMax activation;
+        LossFunction loss;
+        public double[,] output;
+        public double[,] dinputs;
+        public ActivationSoftmaxLossCategoricalCrossentropy (int n_neurons)
+        {
+            this.activation = new SoftMax(n_neurons);
+            this.loss = new CategoricalCrossEntropy();
+        }
+        public double Forward(double [,] inputs, double [,] y_pred)
+        {
+            this.activation.Forward (inputs);
+            this.output = this.activation.output;
+            this.loss.Forward (this.output, y_pred);
+
+            return this.loss.MeanLoss ();
+
+        }
+        public void Backward(double[,] dvalues, double[,] y_true)
+        {
+            int samples = dvalues.GetUpperBound(0)+1;
+            int labels = dvalues.GetUpperBound(1)+1;
+            Console.WriteLine("Samples: {0}", samples);
+            Console.WriteLine("Labels: {0}", labels);
+            int tsamples = y_true.GetUpperBound(0)+1;
+            int tlabels = y_true.GetUpperBound(1)+1;
+            Console.WriteLine("True Samples: {0}", tsamples);
+            Console.WriteLine("True Labels: {0}", tlabels);
+
+            // calculate the gradient
+            this.dinputs = matrix.copy(dvalues);
+
+             for (int i = 0; i < samples; i++)
+             {
+                // subtract 1 from entry in dinputs that represents the true value 
+                // in the one-hot-encoded matrix y_true.
+                for (int j = 0; j < labels; j++)
+                {
+                    if (y_true[i,j]==1) this.dinputs[i,j] -= 1; 
+                    // normalize the gradient
+                    this.dinputs[i,j] = this.dinputs[i,j] /samples;
+                }
+                
+                
+             }
+             
+
+        }
+    }
     class DenseLayer
     {
         static Random rand = new Random();
         public double[,] weights;
         public double[] biases;
         public double[,] output;
-        public ActivationFunction activation_function;
-        public DenseLayer (int n_inputs, int n_neurons, Activation at )
+        public double[,] dinputs;
+        public double[,] inputs;
+        public double[,] dbiases;
+        public double[,] dweights;
+
+        public DenseLayer (int n_inputs, int n_neurons)
         {
             this.weights = random_weights(n_inputs, n_neurons);
             this.biases = new double[n_neurons];
             this.output = new double[1,n_neurons];
-            if (at == Activation.ReLU) this.activation_function = new ReLU(n_neurons);
-            if (at == Activation.SoftMax) this.activation_function = new SoftMax(n_neurons);
-            if (at == Activation.Sigmoid) throw new NotImplementedException();
+
 
 
 
@@ -185,17 +289,18 @@ namespace neuralnet1
 
         public void Forward(double [,] inputs)
         {
+            this.inputs = matrix.copy (inputs);
             this.output =matrix.add(matrix.dot(inputs, this.weights), this.biases);
-            activation_function.Forward(this.output);
+
         }
         public double [,] GetOutput ()
         {
-            return activation_function.output;
+            return output;
         }
 
         public double GetOutputAt (int i, int j)
         {
-            return activation_function.output[i,j];
+            return output[i,j];
         }
         public int GetRows()
         {
@@ -213,8 +318,7 @@ namespace neuralnet1
             {
                 for (int j = 0; j < b; j++)
                 {
-                    r[i, j] = (double)rand.NextDouble()*2-1;
-
+                    r[i, j] = (double)(rand.NextDouble()*2-1)/10;
                 }
                 
             }
@@ -245,6 +349,12 @@ namespace neuralnet1
             r += "}\n";
             return r;
         }
+        public void Backward (double[,] dvalues) {
+            this.dweights = matrix.dot (this.inputs, dvalues);
+            //this.dbiases = matrix.sum (dvalues, axis=0, keepdims=True); // mimic np.sum output...
+            this.dinputs = matrix.dot(dvalues, matrix.transpose(this.weights));
+
+        }
     }
     class Program
     {
@@ -259,22 +369,44 @@ namespace neuralnet1
             double[,] inputs = m.GetBatchSamples(samples);
             double[,] class_targets = m.GetBatchClassifications(samples);
 
-            DenseLayer layer1 = new DenseLayer(784, 24, Activation.ReLU);
-            DenseLayer layer2 = new DenseLayer(24, 24, Activation.ReLU);
-            DenseLayer layer3 = new DenseLayer(24, 10, Activation.SoftMax);
+            
+            // build the model
+            DenseLayer layer1 = new DenseLayer(784, 24);
+            ReLU activation1 = new ReLU(24);
+            DenseLayer layer2 = new DenseLayer(24, 24);
+            ReLU activation2 = new ReLU(24);
+            DenseLayer layer3 = new DenseLayer(24, 10);
+            ActivationSoftmaxLossCategoricalCrossentropy loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(10);
+            //SoftMax activation3 = new SoftMax(10);
+            //LossFunction loss = new CategoricalCrossEntropy();
+
+
+            // forward phase of model
             layer1.Forward(inputs);
-            layer2.Forward(layer1.GetOutput());
-            layer3.Forward(layer2.GetOutput());
-            LossFunction loss = new CategoricalCrossEntropy();
-                        
+            activation1.Forward(layer1.output);
+            layer2.Forward(activation1.output);
+            activation2.Forward(layer2.output);
+            layer3.Forward(activation2.output);
+            double loss = loss_activation.Forward(layer3.output, class_targets);
 
-            //Console.WriteLine(matrix.MatrixToString(layer3.GetOutput()));
-            loss.Calculate(layer3.GetOutput(), class_targets);
 
+            loss_activation.Backward (loss_activation.output, class_targets);
+            layer3.Backward (loss_activation.dinputs);
+            activation2.Backward (layer3.dinputs);
+            layer2.Backward (activation2.dinputs);
+            activation1.Backward (layer2.dinputs);
+            layer1.Backward (activation1.dinputs);
+            //activation3.Forward (layer3.output);
+            //loss.Forward (activation3.output, class_targets);                     
+            Console.WriteLine(matrix.MatrixToString(loss_activation.output));
+            Console.WriteLine ("loss: {0}", loss.ToString("0.########"));
+            //
+            
             // Accuracy Calculation
             // for each row of matrix,
             // do equivalency check of arg max from prediction and arg max of true
             // the mean of the equivalency checks is the accuracy.
+            /*
             double sum_correct = 0;
             for (int i = 0; i < layer3.GetRows(); i++)
             {
@@ -284,9 +416,11 @@ namespace neuralnet1
                 if(argMaxA == argMaxB) sum_correct++;
             }
             double acc = sum_correct / layer3.GetRows();
-
-            Console.WriteLine ("loss: {0}", loss.MeanLoss().ToString("0.########"));
             Console.WriteLine("acc: {0}", acc.ToString("0.########"));
+            */
+
+            
+            
             Console.ReadKey();
         }
     }

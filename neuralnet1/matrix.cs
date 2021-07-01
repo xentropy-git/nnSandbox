@@ -75,10 +75,26 @@ namespace neuralnet1
 
             return rv;
         }
-        public static bool compare(double[,] m0, double[,] m1)
+        public static double[,] copy(double[,] m1)
+        {
+            double[,] rv = m1.Clone() as double[,];
+            return rv;
+        }
+        public static double[] copy(double[] v1)
         {
             // calculates dot product on two matricies
             // matrix (row, column)
+            /*
+            int size = v1.GetUpperBound(0) + 1;
+            double[] rv = new double[size];
+            v1.CopyTo(rv,0);
+            */
+            double[] rv = v1.Clone() as double[];
+            return rv;
+        }
+        public static bool compare(double[,] m0, double[,] m1)
+        {
+            
             int rows = m1.GetUpperBound(0) + 1;
             int cols = m1.GetUpperBound(1) + 1;
 
@@ -91,13 +107,29 @@ namespace neuralnet1
                     double difference = Math.Abs(m0[i, j] * .00001);
                     if (Math.Abs(m0[i, j] - m1[i, j]) > difference)
                     {
-                        Console.WriteLine(m0[i, j] + " != " + m1[i, j]);
                         return false;
                     }
                 }
 
             }
 
+            return true;
+        }
+
+        public static bool compare(double[] m0, double[] m1)
+        {
+            
+            int size = m1.GetUpperBound(0) + 1;
+
+            for (int i = 0; i < size; i++)
+            {
+                // tolerance is required due to precision/rounding errors
+                double difference = Math.Abs(m0[i] * .00001);
+                if (Math.Abs(m0[i] - m1[i]) > difference)
+                {
+                    return false;
+                }
+            }
             return true;
         }
         public static Tuple<int, double> argmax(double[,] a, int row)
@@ -236,10 +268,33 @@ namespace neuralnet1
                 Console.WriteLine("Unit test passed");
             }
         }
+        public static void copy_test_0 () {
+            double[] test = {1, 2, 3, 4, 5};
+            
+            double[] test2 = copy(test);
+            for (int i = 0; i < test2.GetUpperBound(0) + 1; i++)
+            {
+                test2[i] = test2[i] + 1;
+            }
+
+            if (compare(test, test2))
+            {
+                Console.WriteLine("Error, unexpected result from matrix.copy()");
+                Console.WriteLine(VectorToString(test));
+                Console.WriteLine(VectorToString(test2));
+            }
+            else
+            {
+                Console.WriteLine("Unit test passed");
+            }
+        }
         public static void unit_tests ()
         {
             unit_dot_test_0();
             unit_dot_test_1();
+            copy_test_0();
+            
+
         }
     }
 }
