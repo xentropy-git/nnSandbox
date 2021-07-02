@@ -1,19 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
-/*
- * TODO:
- *  Calculate dbiases on backward phase for DenseLayers.  Must implement a function like np.sum()
- *  Implement AdjustValues() for each class to adjust weights and biases based on partial derivative calcs
- *      Might be helpful to create a matrix.add function
- *      matrix.add (matrix [weights], -learning_rate * matrix2 [dweights])
- *  Part of the stochastic gradient descent is already implemented, as samples are generated and sent on the forward pass
- *  The next part of the SGD algorithm will adjust values based on a learning rate, and then select a different
- *  random sample set on each iteration.
- */
 namespace neuralnet1
 {
     enum Activation
@@ -237,12 +224,10 @@ namespace neuralnet1
         {
             int samples = dvalues.GetUpperBound(0)+1;
             int labels = dvalues.GetUpperBound(1)+1;
-            Console.WriteLine("Samples: {0}", samples);
-            Console.WriteLine("Labels: {0}", labels);
+            
             int tsamples = y_true.GetUpperBound(0)+1;
             int tlabels = y_true.GetUpperBound(1)+1;
-            Console.WriteLine("True Samples: {0}", tsamples);
-            Console.WriteLine("True Labels: {0}", tlabels);
+            
 
             // calculate the gradient
             this.dinputs = matrix.copy(dvalues);
@@ -286,7 +271,40 @@ namespace neuralnet1
 
 
         }
+        public void WriteFile (BinaryWriter binWriter)
+        {
+            for (int i = 0; i < this.weights.GetUpperBound(0) + 1; i++)
+            {
+                for (int j = 0; j < this.weights.GetUpperBound(1) + 1; j++)
+                {
+                    binWriter.Write(this.weights[i, j]);
+                }
 
+            }
+
+            for (int i = 0; i < this.biases.GetUpperBound(0) + 1; i++)
+            {
+                binWriter.Write(this.biases[i]);
+            }
+
+        }
+        public void ReadFile(BinaryReader binReader)
+        {
+            for (int i = 0; i < this.weights.GetUpperBound(0) + 1; i++)
+            {
+                for (int j = 0; j < this.weights.GetUpperBound(1) + 1; j++)
+                {
+                    this.weights[i, j] = binReader.ReadDouble();
+                }
+
+            }
+
+            for (int i = 0; i < this.biases.GetUpperBound(0) + 1; i++)
+            {
+                this.biases[i] = binReader.ReadDouble();
+            }
+
+        }
         public void Forward(double [,] inputs)
         {
             this.inputs = matrix.copy (inputs);
@@ -350,76 +368,427 @@ namespace neuralnet1
             return r;
         }
         public void Backward (double[,] dvalues) {
-            this.dweights = matrix.dot (this.inputs, dvalues);
-            //this.dbiases = matrix.sum (dvalues, axis=0, keepdims=True); // mimic np.sum output...
-            this.dinputs = matrix.dot(dvalues, matrix.transpose(this.weights));
+            this.dweights = matrix.dot (matrix.transpose(this.inputs), dvalues);
+            this.dbiases = matrix.sum (dvalues, 0); 
+            this.dinputs = matrix.dot(dvalues, matrix.transpose(this.weights));         
+            
+        }
 
+        public void UpdateParams (double learning_rate = 0.01) {
+           this.weights = matrix.add(this.weights, matrix.scale (-learning_rate, this.dweights));
         }
     }
+    class SGD
+    {
+        Random rnd;
+        double learning_rate;
+        public SGD (double lr)
+        {
+            this.learning_rate = lr;
+            rnd = new Random();
+        }
+        public int[] RandomSamples (uint n_samples, int max_n) {
+            int[] rv = new int[n_samples];
+            for (int i = 0; i < n_samples; i++) {
+                rv[i] = rnd.Next(0, max_n);
+            }
+            return rv;
+        }
+    }
+    
     class Program
     {
- 
-        
+    
         static void Main(string[] args)
         {
+            // Variables
+            double learning_rate = 0.01;
+            double learning_rate_decay = 0; //1e-7;
+            const string model_file = "model.bin";
+            const string pretrained_model_file = "data/pretrained.bin";
+            string logPath = "log.csv";
+            uint batch_size = 32;
+            int epoch = 0;
+
+            // Model Constants
+            int layers = 3;  // WARNING, this version only supports 3 layers.  Changing this number will break the program
+            int layer1_inputs = 784; // don't change this, this corresponds to the pixel sof the 28x28 image
+            int layer1_neurons = 200;
+            int layer2_neurons = 100;
+            int layer3_neurons = 10;   // don't change this; it corresponds to the number of digits to classify
+
+           
             matrix.unit_tests();
             mnist m = new mnist();
-            int[] samples = { 0, 1, 5, 100, 999 };
+            SGD sgd = new SGD(0.01);
+
+            int[] samples = sgd.RandomSamples(5, (int)m.n_images);
             m.Load();
             double[,] inputs = m.GetBatchSamples(samples);
             double[,] class_targets = m.GetBatchClassifications(samples);
 
             
             // build the model
-            DenseLayer layer1 = new DenseLayer(784, 24);
-            ReLU activation1 = new ReLU(24);
-            DenseLayer layer2 = new DenseLayer(24, 24);
-            ReLU activation2 = new ReLU(24);
-            DenseLayer layer3 = new DenseLayer(24, 10);
-            ActivationSoftmaxLossCategoricalCrossentropy loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(10);
-            //SoftMax activation3 = new SoftMax(10);
-            //LossFunction loss = new CategoricalCrossEntropy();
+            DenseLayer layer1 = new DenseLayer(layer1_inputs, layer1_neurons);
+            ReLU activation1 = new ReLU(layer1_neurons);
+            DenseLayer layer2 = new DenseLayer(layer1_neurons, layer2_neurons);
+            ReLU activation2 = new ReLU(layer2_neurons);
+            DenseLayer layer3 = new DenseLayer(layer2_neurons, layer3_neurons);
+            ActivationSoftmaxLossCategoricalCrossentropy loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(layer3_neurons);
 
 
-            // forward phase of model
-            layer1.Forward(inputs);
-            activation1.Forward(layer1.output);
-            layer2.Forward(activation1.output);
-            activation2.Forward(layer2.output);
-            layer3.Forward(activation2.output);
-            double loss = loss_activation.Forward(layer3.output, class_targets);
-
-
-            loss_activation.Backward (loss_activation.output, class_targets);
-            layer3.Backward (loss_activation.dinputs);
-            activation2.Backward (layer3.dinputs);
-            layer2.Backward (activation2.dinputs);
-            activation1.Backward (layer2.dinputs);
-            layer1.Backward (activation1.dinputs);
-            //activation3.Forward (layer3.output);
-            //loss.Forward (activation3.output, class_targets);                     
-            Console.WriteLine(matrix.MatrixToString(loss_activation.output));
-            Console.WriteLine ("loss: {0}", loss.ToString("0.########"));
-            //
-            
-            // Accuracy Calculation
-            // for each row of matrix,
-            // do equivalency check of arg max from prediction and arg max of true
-            // the mean of the equivalency checks is the accuracy.
-            /*
-            double sum_correct = 0;
-            for (int i = 0; i < layer3.GetRows(); i++)
+            void LoadModel(string path = model_file)
             {
-                (int argMaxA, double valueA) = matrix.argmax(layer3.GetOutput(), i);
-                (int argMaxB, double valueB) = matrix.argmax(class_targets, i);
-                Console.WriteLine("Predicted {0}, True {1}", argMaxA, argMaxB);
-                if(argMaxA == argMaxB) sum_correct++;
+                if (File.Exists(path))
+                {
+                    Console.WriteLine("Loading Model {0}.", path);
+                    using (BinaryReader binReader = new BinaryReader(File.Open(path, FileMode.Open)))
+                    {
+                        layers = binReader.ReadInt32();
+                        epoch = binReader.ReadInt32();
+                        layer1_inputs = binReader.ReadInt32();
+                        layer1_neurons = binReader.ReadInt32();
+                        layer2_neurons = binReader.ReadInt32();
+                        layer3_neurons = binReader.ReadInt32();
+                        Console.WriteLine("Model shape ({0} layers):", layers);
+                        Console.WriteLine("Inputs: {0}", layer1_inputs);
+                        Console.WriteLine("Layer 1 Neurons: {0}", layer1_neurons);
+                        Console.WriteLine("Layer 2 Neurons: {0}", layer2_neurons);
+                        Console.WriteLine("Layer 3 Neurons: {0}", layer3_neurons);
+                        layer1 = new DenseLayer(layer1_inputs, layer1_neurons);
+                        activation1 = new ReLU(layer1_neurons);
+                        layer2 = new DenseLayer(layer1_neurons, layer2_neurons);
+                        activation2 = new ReLU(layer2_neurons);
+                        layer3 = new DenseLayer(layer2_neurons, layer3_neurons);
+                        loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(layer3_neurons);
+                        Console.WriteLine("Loading weights and biases.");
+                        layer1.ReadFile(binReader);
+                        layer2.ReadFile(binReader);
+                        layer3.ReadFile(binReader);
+                    }
+                    Console.WriteLine("Done.");
+                } else
+                {
+                    Console.WriteLine("Error! {0} does not exist", path);
+                }
             }
-            double acc = sum_correct / layer3.GetRows();
-            Console.WriteLine("acc: {0}", acc.ToString("0.########"));
-            */
+            if (File.Exists(model_file))
+            {
+                Console.WriteLine("Model file '{0}' FOUND.  Would you like to load it? (y/n)", model_file);
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    Console.WriteLine("");
+                    LoadModel();
+
+
+                }
+                Console.WriteLine("");
+            }
+ 
+            void ForwardAll(double[,] inp) {
+                layer1.Forward(inp);
+                activation1.Forward(layer1.output);
+                layer2.Forward(activation1.output);
+                activation2.Forward(layer2.output);
+                layer3.Forward(activation2.output);
+            }
+
+            void GetRandomSamples() {
+                samples = sgd.RandomSamples(batch_size, (int)m.n_images);
+                inputs = m.GetBatchSamples(samples);
+                class_targets = m.GetBatchClassifications(samples);
+            }
+            void AccuracyTest()
+            {
+                Console.WriteLine("Warning!  This may take several minutes as the accuracy test runs forward predictions on all 10k test samples.");
+                Console.WriteLine("Would you like to continue? (y/n)");
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    Console.WriteLine("");
+                    Console.WriteLine("Running...");
+                    double[,] test_data = m.GetTestSamples();
+                    double[,] test_labels = m.GetTestLabels();
+                    ForwardAll(test_data);
+                    double loss = loss_activation.Forward(layer3.output, test_labels);
+                    double sum_correct = 0;
+                    for (int j = 0; j < layer3.GetRows(); j++)
+                    {
+                        (int argMaxA, double valueA) = matrix.argmax(loss_activation.output, j);
+                        (int argMaxB, double valueB) = matrix.argmax(test_labels, j);
+
+                        if (argMaxA == argMaxB) sum_correct++;
+                    }
+                    double acc = sum_correct / layer3.GetRows();
+                    Console.WriteLine("...Done!");
+                    Console.WriteLine("The accuracy of this model is {0}%", (acc*100).ToString("0.####"));
+                    Console.WriteLine("Press any key to continue.");
+                    Console.ReadKey();
+                    Console.WriteLine("");
+                }
+            }
+            double GetAccuracy() {
+                double sum_correct = 0;
+                for (int j = 0; j < layer3.GetRows(); j++)
+                {
+                    (int argMaxA, double valueA) = matrix.argmax(loss_activation.output, j);
+                    (int argMaxB, double valueB) = matrix.argmax(class_targets, j);
+                    
+                    if(argMaxA == argMaxB) sum_correct++;
+                }
+                double acc = sum_correct / layer3.GetRows();
+                return acc;
+            }
+
+            void PredictionLoop()
+            {
+                int r_img = 0;
+                
+
+                bool keepRunning2 = true;
+
+                while (keepRunning2 == true)
+                {
+                    int[] sample = { r_img };
+
+                    ForwardAll(m.GetBatchSamples(sample));
+                    double loss = loss_activation.Forward(layer3.output, class_targets);
+                    m.DisplayImageInConsole((uint)r_img);
+                    (int argMaxA, double valueA) = matrix.argmax(loss_activation.output, 0);
+                    Console.WriteLine("Displaying image {0}/{1}", (uint)r_img, m.n_images);
+                    Console.WriteLine("Predicted Label: {0} (Confidence = {1}%)", argMaxA, (valueA*100).ToString("0.##"));
+                    Console.WriteLine("Actual Label: '{0}'", m.labelData[r_img]);
+                    
+                    Console.WriteLine("Navigation: (G)oto Image, (+/-) Go forward or backward, (ESC) Escape");
+
+                    switch (Console.ReadKey().Key)
+                    {
+                        case ConsoleKey.G:
+                            Console.WriteLine("");
+                            Console.WriteLine("Choose an image number between 0 and 60000");
+
+                            int newImage = Convert.ToInt32(Console.ReadLine());
+                            if (newImage >= 0 && newImage < 60000)
+                            {
+                                r_img = newImage;
+                            } else
+                            {
+                                Console.WriteLine("Number out of range.");
+                            }
+                            
+                            
+                            break;
+                        case ConsoleKey.Escape: 
+                            Console.WriteLine("");
+                            keepRunning2 = false;
+                            break;
+                        case ConsoleKey.Add:
+                        case ConsoleKey.OemPlus:
+                        case ConsoleKey.RightArrow:
+                            Console.WriteLine("");
+                            r_img++;
+                            if (r_img >= 60000) r_img -= 60000;
+                            break;
+                        case ConsoleKey.Subtract:
+                        case ConsoleKey.OemMinus:
+                        case ConsoleKey.LeftArrow:
+                            Console.WriteLine("");
+                            r_img--;
+                            if (r_img < 0) r_img += 60000;
+                            break;
+                        default:
+                            Console.WriteLine("");
+                            Console.WriteLine("Invalid Option.");
+                            break;
+
+                    }
+                }
+            }
+            void OptimizerLoop()
+            {
+                
+                
+                if (!File.Exists(logPath))
+                {
+                    // Create a file to write to.
+                    using (StreamWriter sw = File.CreateText(logPath))
+                    {
+                        sw.WriteLine("epoch, loss, acc, lr");
+                    }
+                }
+                double lossSum = 0;
+                double accSum = 0;
+                Console.WriteLine("Optimizer STARTED.");
+                int s = 0;
+                do
+                {
+                    while (!Console.KeyAvailable)
+                    {
+                        epoch++;
+                        learning_rate = learning_rate * (1 / (1 + learning_rate_decay * epoch));
+                        GetRandomSamples();
+                        ForwardAll(inputs);
+                        double loss = loss_activation.Forward(layer3.output, class_targets);
+                        double acc = GetAccuracy();
+                        lossSum += loss;
+                        accSum += acc;
+                        s++;
+
+                        if (epoch % 100 == 0 || epoch == 0)
+                        {
+
+                            if (epoch > 0)
+                            {
+                                loss = lossSum / s;
+                                acc = accSum / s;
+                                lossSum = 0;
+                                accSum = 0;
+                                s = 0;
+                            }
+                            using (StreamWriter sw = File.AppendText(logPath))
+                            {
+                                sw.WriteLine("{0}, {1}, {2}, {3}", epoch, loss, acc, learning_rate);
+                            }
+                            
+                            Console.WriteLine("Epoch: {0}, loss: {1}, acc: {2}, lr: {3}", epoch, loss.ToString("0.####"), acc.ToString("0.####"), learning_rate.ToString("0.######"));
+
+                        }
+
+
+                        loss_activation.Backward(loss_activation.output, class_targets);
+                        layer3.Backward(loss_activation.dinputs);
+                        activation2.Backward(layer3.dinputs);
+                        layer2.Backward(activation2.dinputs);
+                        activation1.Backward(layer2.dinputs);
+                        layer1.Backward(activation1.dinputs);
+
+                        layer3.UpdateParams(learning_rate);
+                        layer2.UpdateParams(learning_rate);
+                        layer1.UpdateParams(learning_rate);
+                    }
+                } while (Console.ReadKey(true).Key != ConsoleKey.Escape);
+                Console.WriteLine("Optimizer STOPPED.");
+
+
+
+                Console.WriteLine("Would you like to save this model? (y/n)");
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    Console.WriteLine("");
+                    Console.WriteLine("Saving Model.");
+                    using (BinaryWriter binWriter = new BinaryWriter(File.Open(model_file, FileMode.Create)))
+                    {
+                        binWriter.Write(layers);
+                        binWriter.Write(epoch);
+                        binWriter.Write(layer1_inputs);
+                        binWriter.Write(layer1_neurons);
+                        binWriter.Write(layer2_neurons);
+                        binWriter.Write(layer3_neurons);
+                        layer1.WriteFile(binWriter);
+                        layer2.WriteFile(binWriter);
+                        layer3.WriteFile(binWriter);
+                    }
+                }
+                Console.WriteLine("");
+            }
+
+
+            void NewModel()
+            {
+                Console.WriteLine("Enter number of layer 1 neurons.  (200 is default)");
+                string entry = Console.ReadLine();
+                int n_layer1_neurons = 200;
+                try
+                {
+                    n_layer1_neurons = Convert.ToInt32(entry);
+                }
+                catch (System.FormatException e)
+                {
+                    n_layer1_neurons = 200;
+                }
+                if (n_layer1_neurons == 0) n_layer1_neurons = 200;
+                Console.WriteLine("Layer 1 Neurons = {0}", n_layer1_neurons);
+                Console.WriteLine("Enter number of layer 2 neurons.  (100 is default)");
+                entry = Console.ReadLine();
+                int n_layer2_neurons = 100;
+                try
+                {
+                    n_layer2_neurons = Convert.ToInt32(entry);
+                }
+                catch (System.FormatException e)
+                {
+                    n_layer2_neurons = 100;
+                }
+                if (n_layer2_neurons == 0) n_layer2_neurons = 100;
+                Console.WriteLine("Layer 2 Neurons = {0}", n_layer2_neurons);
+
+                if (n_layer1_neurons > 0 && n_layer2_neurons > 0)
+                {
+                    layer1_neurons = n_layer1_neurons;
+                    layer2_neurons = n_layer2_neurons;
+                    Console.WriteLine("Creating new model with random weights and biases.");
+
+                    layer1 = new DenseLayer(layer1_inputs, layer1_neurons);
+                    activation1 = new ReLU(layer1_neurons);
+                    layer2 = new DenseLayer(layer1_neurons, layer2_neurons);
+                    activation2 = new ReLU(layer2_neurons);
+                    layer3 = new DenseLayer(layer2_neurons, layer3_neurons);
+                    loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(layer3_neurons);
+                    Console.WriteLine("Done.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid network size.");
+                }
+            }
+
+            // Main loop
+            bool keepRunning = true;
+
+            while (keepRunning == true)
+            {
+                Console.WriteLine("Please choose an option from the method:");
+                Console.WriteLine("O) Run the SGD optimizer");
+                Console.WriteLine("P) Run predictions");
+                Console.WriteLine("A) Accuracy Test");
+                Console.WriteLine("L) Load model {0}", pretrained_model_file);
+                Console.WriteLine("N) New model");
+                Console.WriteLine("ESC) Escape");
+                switch (Console.ReadKey().Key)
+                {
+                    case ConsoleKey.Escape:
+                        Console.WriteLine("");
+                        keepRunning = false;
+                        break;
+                    case ConsoleKey.O:
+                        Console.WriteLine("");
+                        OptimizerLoop();
+                        break;
+                    case ConsoleKey.L:
+                        Console.WriteLine("");
+                        LoadModel(pretrained_model_file);
+                        break;
+                    case ConsoleKey.A:
+                        Console.WriteLine("");
+                        AccuracyTest();
+                        break;
+                    case ConsoleKey.P:
+                        Console.WriteLine("");
+                        PredictionLoop();
+                        break;
+                    case ConsoleKey.N:
+                        Console.WriteLine("");
+                        NewModel();
+                        break;
+                    default:
+                        Console.WriteLine("");
+                        Console.WriteLine("Invalid Option.");
+                        break;
+
+                }
+            }
 
             
+            Console.WriteLine("Press any key to exit.");
             
             Console.ReadKey();
         }

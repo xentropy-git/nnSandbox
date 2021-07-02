@@ -18,12 +18,7 @@
   */
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Reflection;
 
 namespace neuralnet1
 {
@@ -33,14 +28,50 @@ namespace neuralnet1
         public byte[][] imageData;
         public double[][] normalData;
         public double[][] classifications; // one-hot-encoded classifications
-        byte[] labelData;
-        string filepath = "../../data/train-images.idx3-ubyte";
-        string labelpath = "../../data/train-labels.idx1-ubyte";
+        public byte[] labelData;
+        string filepath = "data/train-images.idx3-ubyte";
+        string labelpath = "data/train-labels.idx1-ubyte";
+
+
+        public byte[][] t_imageData;
+        public double[][] t_normalData;
+        public double[][] t_classifications; // one-hot-encoded classifications
+        public byte[] t_labelData;
+        string t_filepath = "data/t10k-images.idx3-ubyte";
+        string t_labelpath = "data/t10k-labels.idx1-ubyte";
+
         int pos = 0;
         int length;
-        uint n_images;
+        public uint n_images;
+        public uint t_n_images;
         uint img_y;
         uint img_x;
+
+        public double[,] GetTestSamples()
+        {
+            // returns a test dataset of all 10k images ready for forward pass
+            double[,] batch_samples = new double[10000, img_x * img_y];
+            for (int n = 0; n < 10000; n++)
+            {
+                for (int i = 0; i < (img_x * img_y); i++)
+                {
+                    batch_samples[n, i] = this.t_normalData[n][i];
+                }
+            }
+            return batch_samples;
+        }
+        public double[,] GetTestLabels()
+        {
+            double[,] batch_classifications = new double[10000, 10];
+            for (int n = 0; n < 10000; n++)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    batch_classifications[n, i] = this.t_classifications[n][i];
+                }
+            }
+            return batch_classifications;
+        }
         public double[,] GetBatchSamples(int[] sample_indices)
         {
             // takes in an array of integers and constructs a 2d array of samples matching corresponding to indices
@@ -79,6 +110,17 @@ namespace neuralnet1
                     else this.classifications[n][i] = 0;
                 }
             }
+
+            this.t_classifications = new double[t_n_images][];
+            for (int n = 0; n < t_n_images; n++)
+            {
+                this.t_classifications[n] = new double[10];
+                for (int i = 0; i < 10; i++)
+                {
+                    if (i == t_labelData[n]) this.t_classifications[n][i] = 1;
+                    else this.t_classifications[n][i] = 0;
+                }
+            }
         }
         public void NormalizeData()
         {
@@ -90,6 +132,18 @@ namespace neuralnet1
                     normalData[n][i] = (double)imageData[n][i] / 255;
                 }
             }
+
+            this.t_normalData = new double[t_n_images][];
+            for (int n = 0; n < t_n_images; n++)
+            {
+                this.t_normalData[n] = new double[img_x * img_y];
+                for (int i = 0; i < (img_x * img_y); i++)
+                {
+                    t_normalData[n][i] = (double)t_imageData[n][i] / 255;
+                }
+            }
+
+
         }
         
         public byte GetByte()
@@ -191,15 +245,59 @@ namespace neuralnet1
                 labelData[n] = GetByte();
             }
             Console.WriteLine("..Done!");
+        }
+
+        public void LoadTestLabels()
+        {
+            Console.WriteLine("Opening file '{0}'", this.t_labelpath);
+            try
+            {
+                this.fileBytes = File.ReadAllBytes(this.t_labelpath);
+            }
+            catch (DirectoryNotFoundException e1)
+            {
+                Console.WriteLine("ERROR - Directory not found!");
+                return;
+            }
+            catch (FileNotFoundException e1)
+            {
+                Console.WriteLine("ERROR - File not found!");
+                return;
+            }
+            pos = 0;
+            length = fileBytes.Length;
+            Console.WriteLine("...OK.  {0} bytes.", length);
+            Console.WriteLine("Parsing test labels");
+            // file specifications described by http://yann.lecun.com/exdb/mnist/
+            // all integers are MSB (high endian)
+            // bytes 0 to 3 represent a 32 bit integer magic number equal to 2051
+            if (GetUINT() != 2049)
+            {
+                Console.WriteLine("ERROR - Magic number is not correct.");
+                return;
+            }
+
+            uint n_labels = GetUINT();
+            Console.WriteLine("Loading {0} labels from file.", n_labels);
+            t_labelData = new byte[n_labels];
+            for (int n = 0; n < n_labels; n++)
+            {
+                t_labelData[n] = GetByte();
+            }
+            Console.WriteLine("..Done!");
 
         }
         public void Load()
         {
             this.LoadTrainLabels();
             this.LoadTrainDataset();
+            
+            this.LoadTestLabels();
+            this.LoadTestDataset();
             this.NormalizeData();
             this.OneHotEncodeLabels();
 
+            /*
             Random rnd = new Random();
             int r_img = rnd.Next(0, (int)n_images); // creates a number between 1 and 12
             Console.WriteLine("Displaying random image from file {0}/{1}", (uint)r_img, n_images);
@@ -207,6 +305,7 @@ namespace neuralnet1
             Console.WriteLine("Label for this image is '{0}'", labelData[r_img]);
             Console.WriteLine("One-hot-encode is {0}", matrix.VectorToString(this.classifications[r_img]));
             DisplayImageInConsole((uint)r_img);
+            */
         }
         public void LoadTrainDataset ()
         {
@@ -255,8 +354,57 @@ namespace neuralnet1
                 imageData[imgn] = GetByteImage(img_y, img_x);
             }
             Console.WriteLine("..Done!");
+        }
+        public void LoadTestDataset()
+        {
 
-           
+            Console.WriteLine("Opening file '{0}'", this.t_filepath);
+            try
+            {
+                this.fileBytes = File.ReadAllBytes(this.t_filepath);
+            }
+            catch (DirectoryNotFoundException e1)
+            {
+                Console.WriteLine("ERROR - Directory not found!");
+                return;
+            }
+            catch (FileNotFoundException e1)
+            {
+                Console.WriteLine("ERROR - File not found!");
+                return;
+            }
+            pos = 0;
+            length = fileBytes.Length;
+            Console.WriteLine("...OK.  {0} bytes.", length);
+            Console.WriteLine("Parsing training data");
+            // file specifications described by http://yann.lecun.com/exdb/mnist/
+            // all integers are MSB (high endian)
+            // bytes 0 to 3 represent a 32 bit integer magic number equal to 2051
+            if (GetUINT() != 2051)
+            {
+                Console.WriteLine("ERROR - Magic number is not correct.");
+                return;
+            }
+
+            t_n_images = GetUINT();
+
+            img_y = GetUINT();
+            img_x = GetUINT();
+            Console.WriteLine("Image size is {0}x{1}", img_x, img_y);
+            if (img_x != 28 || img_y != 28)
+            {
+                Console.WriteLine("Incorrect image size.  Should be 28x28.");
+                return;
+            }
+            Console.WriteLine("Loading {0} images from file.", n_images);
+            t_imageData = new byte[t_n_images][];
+            for (int imgn = 0; imgn < t_n_images; imgn++)
+            {
+                t_imageData[imgn] = GetByteImage(img_y, img_x);
+            }
+            Console.WriteLine("..Done!");
+
+
 
 
         }

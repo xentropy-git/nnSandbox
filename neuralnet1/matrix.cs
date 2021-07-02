@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace neuralnet1
 {
@@ -73,6 +70,60 @@ namespace neuralnet1
 
             }
 
+            return rv;
+        }
+
+        public static double[,] scale(double scalar, double[,] m1)
+        {
+            // Multiplies a matrix by a scalar
+            int rows = m1.GetUpperBound(0) + 1;
+            int cols = m1.GetUpperBound(1) + 1;
+            double[,] rv = new double[rows, cols];
+
+            for (int i = 0; i < rows; i++)
+            {
+
+                for (int j = 0; j < cols; j++)
+                {
+                    rv[i, j] =  scalar * m1[i,j];
+                }
+
+            }
+
+            return rv;
+        }
+        public static double[,] sum (double[,] m0, int axis = 0)
+        {
+            int rows = m0.GetUpperBound(0) + 1;
+            int cols = m0.GetUpperBound(1) + 1;
+
+            double[,] rv = new double[rows, 1];
+            
+            if (axis == 0) {     
+                rv = new double[1, cols];
+                for (int j = 0; j < cols; j++)
+                {
+                    double col_sum = 0f;
+                    for (int i = 0; i < rows; i++)
+                    {
+                        col_sum += m0[i, j];
+                    }
+                    rv[0, j] = col_sum;
+                }
+                
+            }
+            else if (axis == 1) {
+                rv = new double[rows, 1];
+                for (int i = 0; i < rows; i++)
+                {
+                    double row_sum = 0f;
+                    for (int j = 0; j < cols; j++)
+                    {
+                        row_sum += m0[i, j];
+                    }
+                    rv[i, 0] = row_sum;
+                }
+            }
             return rv;
         }
         public static double[,] copy(double[,] m1)
@@ -165,6 +216,26 @@ namespace neuralnet1
             }
             return rv;
         }
+
+        public static double[,] add(double[,] m1, double[,] m2)
+        {
+            int rows = m1.GetUpperBound(0) + 1;
+            int cols = m1.GetUpperBound(1) + 1;
+            double[,] rv = new double[rows, cols];
+
+            for (int i = 0; i < rows; i++)
+            {
+
+                for (int j = 0; j < cols; j++)
+                {
+
+                    rv[i, j] = m1[i, j] + m2[i, j];
+                }
+
+            }
+            return rv;
+        }
+
         public static string MatrixToString(double[,] m0)
         {
             String r = "";
@@ -288,12 +359,62 @@ namespace neuralnet1
                 Console.WriteLine("Unit test passed");
             }
         }
+
+        public static void unit_sum_test_0()
+        {
+
+            double[,] test_input = 
+                        {{10.0, -7.0, 2.0, 1.0},
+                        {-6.0, 18.0, -14.0, -3.0},
+                        {-10.0, 6.0, -1.0, -1.0}};
+
+            double[,] test_expected = 
+                        {{-6, 17, -13, -3}};
+
+            double[,] output = sum(test_input, 0);
+
+            if (!compare(output, test_expected))
+            {
+                Console.WriteLine("Error, unexpected result from matrix.sum(axis=0)");
+                Console.WriteLine(MatrixToString(output));
+            }
+            else
+            {
+                Console.WriteLine("Unit test passed");
+            }
+        }
+
+        public static void unit_sum_test_1()
+        {
+
+            double[,] test_input = 
+                        {{-1.0, 21.0, -4.0, 2.0},
+                        {9.0, -2.0, -10.0, 7.0},
+                        {-24.0, 0.0, -5.0, 2.0}};
+
+            double[,] test_expected = 
+                        {{18.0},{4.0}, {-27.0}};
+
+            double[,] output = sum(test_input, 1);
+
+            if (!compare(output, test_expected))
+            {
+                Console.WriteLine("Error, unexpected result from matrix.sum(axis=1)");
+                Console.WriteLine(MatrixToString(output));
+            }
+            else
+            {
+                Console.WriteLine("Unit test passed");
+            }
+        }
+
         public static void unit_tests ()
         {
             unit_dot_test_0();
             unit_dot_test_1();
             copy_test_0();
-            
+            unit_sum_test_0();
+            unit_sum_test_1();
 
         }
     }
