@@ -1,3 +1,5 @@
+If you previously cloned this based on my announcement of a working version, please reclone it and try it again.  I had a push failure.  The code is now up to date but I lost my readme file.  Stay tuned for better documentation.
+
 # nnSandbox
 From scratch implementation of a neural network in c#
 
