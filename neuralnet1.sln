@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30204.135
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "neuralnet1", "neuralnet1\neuralnet1.csproj", "{7E96C4A9-77E1-42CF-9809-6918690055A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nnGui", "nnGui\nnGui.csproj", "{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,14 @@ Global
 		{7E96C4A9-77E1-42CF-9809-6918690055A2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7E96C4A9-77E1-42CF-9809-6918690055A2}.Release|x86.ActiveCfg = Release|x86
 		{7E96C4A9-77E1-42CF-9809-6918690055A2}.Release|x86.Build.0 = Release|x86
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Debug|x86.Build.0 = Debug|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Release|x86.ActiveCfg = Release|Any CPU
+		{627094CB-E18A-4EC6-BEF2-01A7A791DB8A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -12,7 +12,7 @@ namespace neuralnet
         {
             // Variables
             const string model_file = "model.bin";
-            const string pretrained_model_file = "data/pretrained.bin";
+            const string pretrained_model_file = "models/pretrained.bin";
             const string logPath = "log.csv";
            
             matrix.unit_tests();
@@ -161,7 +161,15 @@ namespace neuralnet
                     while (!Console.KeyAvailable)
                     {
                         sgd.RandomizeBatch(m);
-                        sgd.Train(model, logPath, 100);
+                        sgd.Train(model);
+                        if (model.epoch % 100 == 0)
+                        {
+                            sgd.LogHistory(logPath);
+                            (int epoch, double loss, double acc, double lr) = sgd.GetRollingAverage();
+                            Console.WriteLine("Epoch: {0}, loss: {1}, acc: {2}, lr: {3}", epoch, loss.ToString("0.####"),
+                                acc.ToString("0.####"), lr.ToString("0.######"));
+
+                        }
                     }
                 } while (Console.ReadKey(true).Key != ConsoleKey.Escape);
                 Console.WriteLine("Optimizer STOPPED.");

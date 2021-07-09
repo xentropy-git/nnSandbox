@@ -128,7 +128,7 @@ namespace neuralnet
     // ModelPart is a simple business object that layers and activation functions inherit from
     // this allows a neural network model to be made up of an arbitrary number of model parts,
     // Each model part feeds forward into the next during the forward phase
-    class ModelComponent
+    public class ModelComponent
     {
         public double[,] output;
         public double[,] dinputs;
@@ -164,7 +164,7 @@ namespace neuralnet
         }
     }
 
-    class Layer : ModelComponent
+    public class Layer : ModelComponent
     {
         public double[,] weights;
         public double[,] biases;
@@ -316,7 +316,7 @@ namespace neuralnet
             }
         }
     }
-    class ActivationSoftmaxLossCategoricalCrossentropy
+    public class ActivationSoftmaxLossCategoricalCrossentropy
     {
         // combines the softmax activation funcion and cross-entropy loss function
         // when these two are used together, the partial derivitave calculation
@@ -518,7 +518,7 @@ namespace neuralnet
     // sizes of networks.  It also handles saving/loading of
     // weights and biases
 
-    class Model
+    public class Model
     {
         public List<ModelComponent> components
         { get; }
@@ -628,6 +628,7 @@ namespace neuralnet
                             }
                             if (component != null) this.AddComponent(component);
                         }
+                        if (this.version <= 1.0) this.loss_activation = new ActivationSoftmaxLossCategoricalCrossentropy(0);
                     }
                     else
                     {
@@ -722,7 +723,7 @@ namespace neuralnet
             return s;
         }
     }
-    class OptimizerSGD
+    public class OptimizerSGD
     {
         Random rnd;
         public double starting_learning_rate = 1.0;
@@ -730,20 +731,26 @@ namespace neuralnet
         public double learning_rate_decay = 0.001;
         public int batch_size = 32;
         public double momentum = 0.5;
-        int epoch;
 
+        int epoch;
         int[] samples;
         double[,] inputs;
         double[,] class_targets;
 
-        List<double[]> history;
+        public List<double[]> history;
         public OptimizerSGD()
         {
             rnd = new Random();
             history = new List<double[]>();
         }
 
-
+        public double[][] DumpHistory()
+        {
+            double[][] rv = new double[history.Count][];
+            history.CopyTo(rv);
+            history.Clear();
+            return rv;
+        }
         public int[] GenerateRandomValues(uint n_samples, int max_n)
         {
             int[] rv = new int[n_samples];
@@ -769,7 +776,7 @@ namespace neuralnet
                 }
             }
         }
-        public  Tuple<int, double, double, double> GetRollingAverage()
+        public Tuple<int, double, double, double> GetRollingAverage()
         {
             double lossSum = 0;
             double accSum = 0;
@@ -793,6 +800,31 @@ namespace neuralnet
             double acc = model.CalculateAccuracy(this.class_targets);
             double[] row = { model.epoch, loss, acc, this.current_learning_rate };
             this.history.Add(row);
+
+            /*
+            if (model.epoch % printEvery == 0)
+            {
+                
+              
+                 had to remove console output to support thread safe gui application.
+
+                double lossSum = 0;
+                double accSum = 0;
+                foreach (double[] r in this.history)
+                {
+                    lossSum += r[1];
+                    accSum += r[2];
+                }
+                double mean_loss = lossSum / (this.history.Count);
+                double mean_acc = accSum / (this.history.Count);
+                this.history.Clear();
+                
+
+
+                Console.WriteLine("Epoch: {0}, loss: {1}, acc: {2}, lr: {3}", model.epoch, mean_loss.ToString("0.####"),
+                    mean_acc.ToString("0.####"), this.current_learning_rate.ToString("0.######"));
+
+            }*/
             model.Backward(this.class_targets, this.current_learning_rate);
 
             foreach (ModelComponent c in model.components)
