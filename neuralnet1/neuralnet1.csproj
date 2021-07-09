@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{7E96C4A9-77E1-42CF-9809-6918690055A2}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>neuralnet1</RootNamespace>
-    <AssemblyName>neuralnet1</AssemblyName>
+    <RootNamespace>neuralnet</RootNamespace>
+    <AssemblyName>neuralnet</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -95,6 +95,7 @@
   <ItemGroup>
     <Compile Include="matrix.cs" />
     <Compile Include="mnist.cs" />
+	<Compile Include="nn.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

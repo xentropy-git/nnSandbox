@@ -1,7 +1,7 @@
 ﻿using System;
 
 
-namespace neuralnet1
+namespace neuralnet
 {
     public class matrix
     {
@@ -72,7 +72,36 @@ namespace neuralnet1
 
             return rv;
         }
+        public static double [,] zeros_like (double [,] m0)
+        {
+            // make a matrix of 0 values of the same shape as m0
+            int rows = m0.GetUpperBound(0) + 1;
+            int cols = m0.GetUpperBound(1) + 1;
+            double [,] rv = new double [rows, cols];
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    rv[i, j] =  0;
+                }
 
+            }
+            return rv;
+        }
+        public static double[] scale(double scalar, double[] v1)
+        {
+            // Multiplies a vector by a scalar
+            int length = v1.GetUpperBound(0) + 1;
+            double[] rv = new double[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                rv[i] =  scalar * v1[i];
+            }
+
+            return rv;
+        }
+        
         public static double[,] scale(double scalar, double[,] m1)
         {
             // Multiplies a matrix by a scalar
@@ -221,6 +250,8 @@ namespace neuralnet1
         {
             int rows = m1.GetUpperBound(0) + 1;
             int cols = m1.GetUpperBound(1) + 1;
+            int rows2 = m2.GetUpperBound(0) + 1;
+            int cols2 = m2.GetUpperBound(1) + 1;
             double[,] rv = new double[rows, cols];
 
             for (int i = 0; i < rows; i++)
@@ -228,13 +259,23 @@ namespace neuralnet1
 
                 for (int j = 0; j < cols; j++)
                 {
-
-                    rv[i, j] = m1[i, j] + m2[i, j];
+                    if (rows == rows2 && cols == cols2)
+                    {
+                        rv[i, j] = m1[i, j] + m2[i, j];
+                    } else if (rows2 == 1)
+                    {
+                        // m2 is of shape 1xn, so treat this like vector addition
+                        // necessary for bias calculation
+                        rv[i, j] = m1[i, j] + m2[0, j];
+                    }
+                    
                 }
 
             }
             return rv;
         }
+
+  
 
         public static string MatrixToString(double[,] m0)
         {
@@ -306,10 +347,6 @@ namespace neuralnet1
                 Console.WriteLine("Error, unexpected result from matrix.dot()");
                 Console.WriteLine(MatrixToString(output));
             }
-            else
-            {
-                Console.WriteLine("Unit test passed");
-            }
         }
         public static void unit_dot_test_1()
         {
@@ -334,10 +371,6 @@ namespace neuralnet1
                 Console.WriteLine("Error, unexpected result from matrix.dot()");
                 Console.WriteLine(MatrixToString(output));
             }
-            else
-            {
-                Console.WriteLine("Unit test passed");
-            }
         }
         public static void copy_test_0 () {
             double[] test = {1, 2, 3, 4, 5};
@@ -353,10 +386,6 @@ namespace neuralnet1
                 Console.WriteLine("Error, unexpected result from matrix.copy()");
                 Console.WriteLine(VectorToString(test));
                 Console.WriteLine(VectorToString(test2));
-            }
-            else
-            {
-                Console.WriteLine("Unit test passed");
             }
         }
 
@@ -378,10 +407,6 @@ namespace neuralnet1
                 Console.WriteLine("Error, unexpected result from matrix.sum(axis=0)");
                 Console.WriteLine(MatrixToString(output));
             }
-            else
-            {
-                Console.WriteLine("Unit test passed");
-            }
         }
 
         public static void unit_sum_test_1()
@@ -401,10 +426,6 @@ namespace neuralnet1
             {
                 Console.WriteLine("Error, unexpected result from matrix.sum(axis=1)");
                 Console.WriteLine(MatrixToString(output));
-            }
-            else
-            {
-                Console.WriteLine("Unit test passed");
             }
         }
 

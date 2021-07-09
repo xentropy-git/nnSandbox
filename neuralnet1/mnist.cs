@@ -20,7 +20,7 @@
 using System;
 using System.IO;
 
-namespace neuralnet1
+namespace neuralnet
 {
     class mnist
     {
@@ -214,12 +214,12 @@ namespace neuralnet1
             {
                 this.fileBytes = File.ReadAllBytes(this.labelpath);
             }
-            catch (DirectoryNotFoundException e1)
+            catch (DirectoryNotFoundException )
             {
                 Console.WriteLine("ERROR - Directory not found!");
                 return;
             }
-            catch (FileNotFoundException e1)
+            catch (FileNotFoundException )
             {
                 Console.WriteLine("ERROR - File not found!");
                 return;
@@ -254,12 +254,12 @@ namespace neuralnet1
             {
                 this.fileBytes = File.ReadAllBytes(this.t_labelpath);
             }
-            catch (DirectoryNotFoundException e1)
+            catch (DirectoryNotFoundException )
             {
                 Console.WriteLine("ERROR - Directory not found!");
                 return;
             }
-            catch (FileNotFoundException e1)
+            catch (FileNotFoundException )
             {
                 Console.WriteLine("ERROR - File not found!");
                 return;
@@ -314,12 +314,12 @@ namespace neuralnet1
             try
             {
                 this.fileBytes = File.ReadAllBytes(this.filepath);
-            } catch (DirectoryNotFoundException e1)
+            } catch (DirectoryNotFoundException )
             {
                 Console.WriteLine("ERROR - Directory not found!");
                 return;
             }
-            catch (FileNotFoundException e1)
+            catch (FileNotFoundException )
             {
                 Console.WriteLine("ERROR - File not found!");
                 return;
@@ -363,12 +363,12 @@ namespace neuralnet1
             {
                 this.fileBytes = File.ReadAllBytes(this.t_filepath);
             }
-            catch (DirectoryNotFoundException e1)
+            catch (DirectoryNotFoundException )
             {
                 Console.WriteLine("ERROR - Directory not found!");
                 return;
             }
-            catch (FileNotFoundException e1)
+            catch (FileNotFoundException )
             {
                 Console.WriteLine("ERROR - File not found!");
                 return;
