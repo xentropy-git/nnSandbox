@@ -17,7 +17,7 @@ There are two solutions to the project: neuralnet1 and nnGui.  Neuralnet1 is a c
   * 2 hidden layers (500x300) with ReLU activation.
   * Trained for 7000 epochs.
   * Biggest – 4040kb
-* 300hxe.bin – 91.65% accuracy
+* 300h4000e.bin – 91.65% accuracy
   * 2 hidden layers (200x100) with ReLU activation.
   * Trained for x epochs.
   * Medium – 1390kb
