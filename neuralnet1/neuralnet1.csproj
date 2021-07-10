@@ -108,6 +108,8 @@
     <Copy SourceFiles="$(SolutionDir)data\train-labels.idx1-ubyte" DestinationFolder="$(ProjectDir)$(OutDir)data" ContinueOnError="true" />
     <Copy SourceFiles="$(SolutionDir)data\t10k-images.idx3-ubyte" DestinationFolder="$(ProjectDir)$(OutDir)data" ContinueOnError="true" />
     <Copy SourceFiles="$(SolutionDir)data\t10k-labels.idx1-ubyte" DestinationFolder="$(ProjectDir)$(OutDir)data" ContinueOnError="true" />
-    <Copy SourceFiles="$(SolutionDir)models\pretrained.bin" DestinationFolder="$(ProjectDir)$(OutDir)models" ContinueOnError="true" />
+    <Copy SourceFiles="$(SolutionDir)models\35h9000e.bin" DestinationFolder="$(ProjectDir)$(OutDir)models" ContinueOnError="true" />
+	<Copy SourceFiles="$(SolutionDir)models\300h4000e.bin" DestinationFolder="$(ProjectDir)$(OutDir)models" ContinueOnError="true" />
+	<Copy SourceFiles="$(SolutionDir)models\800h7000e.bin" DestinationFolder="$(ProjectDir)$(OutDir)models" ContinueOnError="true" />
   </Target>
 </Project>

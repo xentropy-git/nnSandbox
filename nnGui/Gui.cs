@@ -240,6 +240,7 @@ namespace nnGui
         {
             Console.WriteLine("New model");
             Globals.model.components.Clear();
+            Globals.model.epoch = 0;
             modelDataGrid.Rows.Clear();
             modelDataGrid.Rebuild(Globals.model);
         }

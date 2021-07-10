@@ -12,7 +12,7 @@ namespace neuralnet
         {
             // Variables
             const string model_file = "model.bin";
-            const string pretrained_model_file = "models/pretrained.bin";
+            const string pretrained_model_file = "models/300h4000e.bin";
             const string logPath = "log.csv";
            
             matrix.unit_tests();
