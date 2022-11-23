@@ -768,7 +768,7 @@ namespace nnGui
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(570, 13);
             this.label9.TabIndex = 0;
-            this.label9.Text = "Make sure the first layer has 728 inputs and the last layer has 10 neurons for th" +
+            this.label9.Text = "Make sure the first layer has 784 inputs and the last layer has 10 neurons for th" +
     "e model to work with the MNIST dataset.";
             this.label9.Click += new System.EventHandler(this.label9_Click);
             // 

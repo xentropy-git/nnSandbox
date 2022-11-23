@@ -247,13 +247,13 @@ namespace nnGui
 
         private void addDenseLayerButton_Click(object sender, EventArgs e)
         {
-            int inputs = 728;
+            int inputs = 784;
             int neurons = 100;
 
             if (Globals.model.components.Count == 0)
             {
                 // this is going to be the first layer, so we inputs should be 728
-                inputs = 728;
+                inputs = 784;
             } else
             {
                 // get the neuron size of the most recent layer.
@@ -300,8 +300,8 @@ namespace nnGui
 
             if (Globals.model.components.Count == 0)
             {
-                // this is going to be the first layer, so we inputs should be 728
-                inputs = 728;
+                // this is going to be the first layer, so we inputs should be 784
+                inputs = 784;
             }
             else
             {
